@@ -80,7 +80,9 @@ class PlayerActivity : AppCompatActivity() {
       viewBinding.videoView.player = exoPlayer
 
       val mediaItem = MediaItem.fromUri(getString(R.string.media_url_mp4))
-      exoPlayer.setMediaItems(listOf(mediaItem), currentItem, playbackPosition)
+      val secondMediaItem = MediaItem.fromUri(getString(R.string.media_url_mp3))
+      exoPlayer.setMediaItems(listOf(mediaItem, secondMediaItem), currentItem, playbackPosition)
+
       exoPlayer.playWhenReady = playWhenReady
       exoPlayer.prepare()
     }
