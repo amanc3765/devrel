@@ -1,3 +1,3 @@
 Media streaming with ExoPlayer
 ===
-This repository contains my code as I took the codelab: https://developer.android.com/codelabs/exoplayer-intro#0.
+This repository contains the final code for the Exoplayer codelab: https://developer.android.com/codelabs/exoplayer-intro#0.
