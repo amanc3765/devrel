@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">SocialMedia</string>
+    <string name="clear_message_history">Clear Message History</string>
+    <string name="ai_chatbot_setting">AI Chatbot</string>
+    <string name="performance_class_level">This device is Media Performance Class level %1$d</string>
+    <string name="timeline_empty_title">No photos or videos.</string>
+    <string name="timeline_empty_message">Videos and photos from messages will display here. Add a message or refine your search.</string>
+</resources>
