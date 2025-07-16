@@ -2,46 +2,58 @@ package com.example.exoplayeraidemo
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.exoplayeraidemo.ui.theme.ExoPlayerAIDemoTheme
+import androidx.core.net.toUri
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.ui.PlayerView
 
 class MainActivity : ComponentActivity() {
+    // An instance of ExoPlayer
+    private var player: ExoPlayer? = null
+
+    // A reference to the PlayerView in the layout
+    private lateinit var playerView: PlayerView
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            ExoPlayerAIDemoTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
-        }
+        setContentView(R.layout.activity_main)
+
+        playerView = findViewById(R.id.player_view)
+
+        initializePlayer()
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    override fun onDestroy() {
+        super.onDestroy()
+        // Ensure player is released if not already when the activity is destroyed
+        releasePlayer()
+    }
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    ExoPlayerAIDemoTheme {
-        Greeting("Android")
+    private fun initializePlayer() {
+        if (player == null) {
+            // Build a new ExoPlayer instance
+            player = ExoPlayer.Builder(this).build()
+            // Attach the player to the PlayerView
+            playerView.player = player
+        }
+
+        // Define the URL of your video
+        val videoUrl =
+            "https://www.learningcontainer.com/wp-content/uploads/2020/05/sample-mp4-file.mp4"
+        // Create a MediaItem from the video URL
+        val mediaItem = MediaItem.fromUri(videoUrl.toUri())
+
+        // Set the MediaItem to the player
+        player?.setMediaItem(mediaItem)
+        // Prepare the player to start loading the media
+        player?.prepare()
+        // Start playing automatically when ready
+        player?.playWhenReady = true
+    }
+
+    private fun releasePlayer() {
+        // Release the player and set it to null
+        player?.release()
+        player = null
     }
 }
