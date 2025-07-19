@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">ExoPlayerDemo</string>
+    <string name="default_media_item_uri">https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4</string>
+    <string name="select_tracks">SELECT TRACKS</string>
 </resources>
