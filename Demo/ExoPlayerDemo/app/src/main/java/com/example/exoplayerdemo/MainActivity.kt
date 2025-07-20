@@ -2,28 +2,46 @@ package com.example.exoplayerdemo
 
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import androidx.activity.ComponentActivity
-import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.PlayerView
-import androidx.media3.common.TrackSelectionParameters
-import androidx.media3.common.Tracks
-import android.util.Log
+import androidx.annotation.OptIn
 import androidx.core.net.toUri
 import androidx.media3.common.C
+import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
+import androidx.media3.common.TrackSelectionParameters
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.ima.ImaAdsLoader
+import androidx.media3.exoplayer.ima.ImaServerSideAdInsertionMediaSource
+import androidx.media3.exoplayer.ima.ImaServerSideAdInsertionUriBuilder
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MediaSource
+import androidx.media3.exoplayer.source.ads.AdsLoader
+import androidx.media3.ui.PlayerView
 
 class MainActivity : ComponentActivity() {
 
     companion object {
         private const val VIDEO_URI_DEFAULT =
             "https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4"
+
         private const val VIDEO_URI_SUBTITLE = "https://html5demos.com/assets/dizzy.mp4"
         private const val SUBTITLE_URI_ENGLISH =
             "https://storage.googleapis.com/exoplayer-test-media-1/ttml/netflix_ttml_sample.xml"
         private const val SUBTITLE_URI_JAPANESE =
             "https://storage.googleapis.com/exoplayer-test-media-1/ttml/japanese-ttml.xml"
+
+        private const val DRM_VIDEO_URI =
+            "https://storage.googleapis.com/wvmedia/cenc/h264/tears/tears.mpd"
+        private const val DRM_LICENSE_URI =
+            "https://proxy.uat.widevine.com/proxy?video_id=2015_tears&provider=widevine_test"
+
+        private const val ADS_TAG_URI =
+            "https://pubads.g.doubleclick.net/gampad/ads?sz=640x480&iu=/124319096/external/ad_rule_samples&ciu_szs=300x250&ad_rule=1&impl=s&gdfp_req=1&env=vp&output=vmap&unviewed_position_start=1&cust_params=deployment%3Ddevsite%26sample_ar%3Dpremidpostlongpod&cmsid=496&vid=short_tencue&correlator="
+        private const val SSAI_ADS_URI =
+            "ssai://dai.google.com/?assetKey=sN_IYUG8STe1ZzhIIE_ksA&format=2&adsId=3"
     }
 
     private lateinit var playerView: PlayerView
@@ -31,9 +49,11 @@ class MainActivity : ComponentActivity() {
 
     private var player: ExoPlayer? = null
     private var mediaItems: List<MediaItem> = listOf()
-    private lateinit var trackSelectionParameters: TrackSelectionParameters
+    private lateinit var clientSideAdsLoader: AdsLoader
+    private lateinit var serverSideAdsLoader: ImaServerSideAdInsertionMediaSource.AdsLoader
 
-    private var playbackPosition = 0L
+    private var currentItemIndex = 0
+    private var playbackPosition = C.TIME_UNSET
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -46,16 +66,12 @@ class MainActivity : ComponentActivity() {
         trackSelectionButton.setOnClickListener {
             onTrackSelectionButtonClicked()
         }
-
-        trackSelectionParameters =
-            TrackSelectionParameters.Builder().clearVideoSizeConstraints().build()
     }
 
     override fun onStart() {
         super.onStart()
-        if (player == null) {
-            initializePlayer()
-        }
+        initializePlayer()
+        playerView.onResume()
     }
 
     override fun onStop() {
@@ -65,35 +81,39 @@ class MainActivity : ComponentActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        releasePlayer()
     }
 
+    @OptIn(UnstableApi::class)
     private fun initializePlayer() {
-        if (player == null) {
-            player = ExoPlayer.Builder(this).build()
+        val trackSelectionParameters = TrackSelectionParameters.Builder(this).build()
 
-            mediaItems = createMediaItems()
-            if (mediaItems.isEmpty()) {
-                return
+        player = ExoPlayer.Builder(this).setMediaSourceFactory(createMediaSourceFactory()).build()
+            .also { exoPlayer ->
+                playerView.player = exoPlayer
+                exoPlayer.trackSelectionParameters = trackSelectionParameters
+                exoPlayer.playWhenReady = true
+                exoPlayer.prepare()
             }
-            player?.setMediaItems(mediaItems)
+        clientSideAdsLoader.setPlayer(player)
+        serverSideAdsLoader.setPlayer(player!!)
 
-            player?.seekTo(playbackPosition)
-            player?.trackSelectionParameters = trackSelectionParameters
-
-            playerView.player = player
+        mediaItems = createMediaItems()
+        if (mediaItems.isEmpty()) {
+            return
         }
-        player?.prepare()
-        player?.playWhenReady = true
+        player?.setMediaItems(mediaItems)
 
-        val tracks: Tracks = player?.currentTracks ?: Tracks.EMPTY
-        Log.d("Demo", "Tracks: $tracks")
-        for (trackGroup in tracks.groups) {
+        player?.currentTracks?.groups?.forEach { trackGroup ->
             Log.d("Demo", "Track Group: $trackGroup")
         }
     }
 
     private fun createMediaItems(): List<MediaItem> {
         return listOf(
+            createMediaItemWithServerSideAdsConfiguration(),
+            createMediaItemWithAdsConfiguration(),
+            createMediaItemWithDrmConfiguration(),
             createMediaItemWithSubtitleConfiguration(),
             createMediaItemWithClippingConfiguration(VIDEO_URI_DEFAULT.toUri()),
             createDefaultMediaItem()
@@ -134,15 +154,62 @@ class MainActivity : ComponentActivity() {
         ).build()
     }
 
+    private fun createMediaItemWithDrmConfiguration(): MediaItem {
+        val videoUri = DRM_VIDEO_URI.toUri()
+
+        val drmConfiguration =
+            MediaItem.DrmConfiguration.Builder(C.WIDEVINE_UUID).setLicenseUri(DRM_LICENSE_URI)
+                .build()
+
+        return MediaItem.Builder().setUri(videoUri).setDrmConfiguration(drmConfiguration).build()
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun createMediaItemWithAdsConfiguration(): MediaItem {
+        val videoUri = VIDEO_URI_DEFAULT.toUri()
+
+        val adTagUri = ADS_TAG_URI.toUri()
+        val adsConfiguration = MediaItem.AdsConfiguration.Builder(adTagUri).build()
+
+        return MediaItem.Builder().setUri(videoUri).setAdsConfiguration(adsConfiguration).build()
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun createMediaItemWithServerSideAdsConfiguration(): MediaItem {
+        return MediaItem.Builder().setUri(SSAI_ADS_URI.toUri()).build()
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun createMediaSourceFactory(): MediaSource.Factory {
+        val defaultMediaSourceFactory = DefaultMediaSourceFactory(this)
+
+        clientSideAdsLoader = ImaAdsLoader.Builder(this).build()
+
+        serverSideAdsLoader =
+            ImaServerSideAdInsertionMediaSource.AdsLoader.Builder(this, playerView).build()
+        val serverSideAdsMediaSourceFactory = ImaServerSideAdInsertionMediaSource.Factory(
+            serverSideAdsLoader, defaultMediaSourceFactory
+        )
+
+        defaultMediaSourceFactory.setAdsLoaderProvider { clientSideAdsLoader }
+            .setAdViewProvider(playerView)
+            .setServerSideAdInsertionMediaSourceFactory(serverSideAdsMediaSourceFactory)
+
+        return defaultMediaSourceFactory
+    }
 
     private fun onTrackSelectionButtonClicked() {
 
     }
 
     private fun releasePlayer() {
-        playbackPosition = player?.currentPosition ?: 0L
-        player?.release()
+        player?.let { exoPlayer ->
+            playbackPosition = exoPlayer.currentPosition
+            currentItemIndex = exoPlayer.currentMediaItemIndex
+            exoPlayer.release()
+        }
         player = null
+        clientSideAdsLoader.release()
         playerView.player = null
     }
 }
