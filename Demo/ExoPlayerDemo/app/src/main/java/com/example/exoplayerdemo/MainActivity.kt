@@ -2,7 +2,6 @@ package com.example.exoplayerdemo
 
 import android.net.Uri
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
@@ -13,14 +12,16 @@ import androidx.media3.common.MimeTypes
 import androidx.media3.common.TrackSelectionParameters
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.RenderersFactory
 import androidx.media3.exoplayer.ima.ImaAdsLoader
 import androidx.media3.exoplayer.ima.ImaServerSideAdInsertionMediaSource
-import androidx.media3.exoplayer.ima.ImaServerSideAdInsertionUriBuilder
+import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.ads.AdsLoader
 import androidx.media3.ui.PlayerView
 
+@UnstableApi
 class MainActivity : ComponentActivity() {
 
     companion object {
@@ -57,6 +58,8 @@ class MainActivity : ComponentActivity() {
     private var currentItemIndex = 0
     private var playbackPosition = C.TIME_UNSET
 
+    private lateinit var downloadTracker: DownloadTracker
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,12 +71,28 @@ class MainActivity : ComponentActivity() {
         trackSelectionButton.setOnClickListener {
             onTrackSelectionButtonClicked()
         }
+
+        downloadTracker = DownloadUtil.getDownloadTracker(this)
+        startDownloadService()
+        val renderersFactory: RenderersFactory = DownloadUtil.buildRenderersFactory(
+            /* context= */
+            this,
+        )
+        downloadTracker.startDownload(createDefaultMediaItem(), renderersFactory)
     }
 
     override fun onStart() {
         super.onStart()
-        initializePlayer()
-        playerView.onResume()
+//        initializePlayer()
+//        playerView.onResume()
+    }
+
+    private fun startDownloadService() {
+        try {
+            DownloadService.start(this, DemoDownloadService::class.java)
+        } catch (e: IllegalStateException) {
+            DownloadService.startForeground(this, DemoDownloadService::class.java)
+        }
     }
 
     override fun onStop() {

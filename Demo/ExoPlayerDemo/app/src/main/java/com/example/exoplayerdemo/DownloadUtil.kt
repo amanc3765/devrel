@@ -8,6 +8,9 @@ import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.Cache
 import androidx.media3.datasource.cache.NoOpCacheEvictor
 import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.DefaultRenderersFactory.ExtensionRendererMode
+import androidx.media3.exoplayer.RenderersFactory
 import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadNotificationHelper
 import java.io.File
@@ -24,6 +27,7 @@ object DownloadUtil {
     private var downloadCache: Cache? = null
     private var downloadDirectory: File? = null
     private var downloadNotificationHelper: DownloadNotificationHelper? = null
+    private var downloadTracker: DownloadTracker? = null // Potential memory leak
     private const val DOWNLOAD_CONTENT_DIRECTORY: String = "downloads"
     private const val DOWNLOAD_NOTIFICATION_CHANNEL_ID: String = "download_channel"
 
@@ -32,6 +36,13 @@ object DownloadUtil {
         ensureDownloadManagerInitialized(context)
         return downloadManager!!
     }
+
+    @Synchronized
+    fun getDownloadTracker(context: Context): DownloadTracker {
+        ensureDownloadManagerInitialized(context)
+        return downloadTracker!!
+    }
+
 
     @Synchronized
     private fun ensureDownloadManagerInitialized(context: Context) {
@@ -43,6 +54,8 @@ object DownloadUtil {
                 getHttpDataSourceFactory(context),
                 Executors.newFixedThreadPool(6)
             )
+            downloadTracker =
+                DownloadTracker(context, getHttpDataSourceFactory(context), downloadManager!!)
         }
     }
 
@@ -103,5 +116,13 @@ object DownloadUtil {
             )
         }
         return downloadNotificationHelper!!
+    }
+
+    fun buildRenderersFactory(
+        context: Context
+    ): RenderersFactory {
+        return DefaultRenderersFactory(context.applicationContext).setExtensionRendererMode(
+            DefaultRenderersFactory.EXTENSION_RENDERER_MODE_OFF
+        )
     }
 }
