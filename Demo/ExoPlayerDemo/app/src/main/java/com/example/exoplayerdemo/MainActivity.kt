@@ -49,7 +49,9 @@ class MainActivity : ComponentActivity() {
 
     private var player: ExoPlayer? = null
     private var mediaItems: List<MediaItem> = listOf()
+
     private lateinit var clientSideAdsLoader: AdsLoader
+    private lateinit var clientSIdeAdsLoaderProvider: AdsLoader.Provider
     private lateinit var serverSideAdsLoader: ImaServerSideAdInsertionMediaSource.AdsLoader
 
     private var currentItemIndex = 0
@@ -86,27 +88,41 @@ class MainActivity : ComponentActivity() {
 
     @OptIn(UnstableApi::class)
     private fun initializePlayer() {
-        val trackSelectionParameters = TrackSelectionParameters.Builder(this).build()
+        if (player != null) {
+            return
+        }
 
-        player = ExoPlayer.Builder(this).setMediaSourceFactory(createMediaSourceFactory()).build()
+        val trackSelectionParameters = TrackSelectionParameters.Builder(this).build()
+        val mediaSourceFactory = createMediaSourceFactory()
+
+        player = ExoPlayer.Builder(this).setMediaSourceFactory(mediaSourceFactory).build()
             .also { exoPlayer ->
                 playerView.player = exoPlayer
                 exoPlayer.trackSelectionParameters = trackSelectionParameters
                 exoPlayer.playWhenReady = true
+                clientSideAdsLoader.setPlayer(exoPlayer)
+                serverSideAdsLoader.setPlayer(exoPlayer)
+
+                mediaItems = createMediaItems()
+                exoPlayer.setMediaItems(mediaItems, currentItemIndex, playbackPosition)
                 exoPlayer.prepare()
             }
-        clientSideAdsLoader.setPlayer(player)
-        serverSideAdsLoader.setPlayer(player!!)
+    }
 
-        mediaItems = createMediaItems()
-        if (mediaItems.isEmpty()) {
-            return
-        }
-        player?.setMediaItems(mediaItems)
+    @OptIn(UnstableApi::class)
+    private fun createMediaSourceFactory(): MediaSource.Factory {
+        clientSideAdsLoader = ImaAdsLoader.Builder(this).build()
+        clientSIdeAdsLoaderProvider = AdsLoader.Provider { clientSideAdsLoader }
 
-        player?.currentTracks?.groups?.forEach { trackGroup ->
-            Log.d("Demo", "Track Group: $trackGroup")
-        }
+        serverSideAdsLoader =
+            ImaServerSideAdInsertionMediaSource.AdsLoader.Builder(this, playerView).build()
+        val serverSideAdsMediaSourceFactory = ImaServerSideAdInsertionMediaSource.Factory(
+            serverSideAdsLoader, DefaultMediaSourceFactory(this)
+        )
+
+        return DefaultMediaSourceFactory(this).setLocalAdInsertionComponents(
+            clientSIdeAdsLoaderProvider, playerView
+        ).setServerSideAdInsertionMediaSourceFactory(serverSideAdsMediaSourceFactory)
     }
 
     private fun createMediaItems(): List<MediaItem> {
@@ -179,25 +195,6 @@ class MainActivity : ComponentActivity() {
         return MediaItem.Builder().setUri(SSAI_ADS_URI.toUri()).build()
     }
 
-    @OptIn(UnstableApi::class)
-    private fun createMediaSourceFactory(): MediaSource.Factory {
-        val defaultMediaSourceFactory = DefaultMediaSourceFactory(this)
-
-        clientSideAdsLoader = ImaAdsLoader.Builder(this).build()
-
-        serverSideAdsLoader =
-            ImaServerSideAdInsertionMediaSource.AdsLoader.Builder(this, playerView).build()
-        val serverSideAdsMediaSourceFactory = ImaServerSideAdInsertionMediaSource.Factory(
-            serverSideAdsLoader, defaultMediaSourceFactory
-        )
-
-        defaultMediaSourceFactory.setAdsLoaderProvider { clientSideAdsLoader }
-            .setAdViewProvider(playerView)
-            .setServerSideAdInsertionMediaSourceFactory(serverSideAdsMediaSourceFactory)
-
-        return defaultMediaSourceFactory
-    }
-
     private fun onTrackSelectionButtonClicked() {
 
     }
@@ -209,7 +206,11 @@ class MainActivity : ComponentActivity() {
             exoPlayer.release()
         }
         player = null
-        clientSideAdsLoader.release()
+        // Release the ad loaders when the player is released.
+        clientSideAdsLoader.release() // This will no-op if clientSideAdsLoader is not initialized.
+        if (::serverSideAdsLoader.isInitialized) { // Check if serverSideAdsLoader has been initialized
+            serverSideAdsLoader.release()
+        }
         playerView.player = null
     }
 }
