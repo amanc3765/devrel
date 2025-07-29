@@ -1,5 +1,6 @@
 package com.example.news.presentation.onboarding
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.news.domain.usecases.AppEntryUseCases
@@ -21,6 +22,7 @@ class OnBoardingViewModel @Inject constructor(private val appEntryUseCases: AppE
 
     private fun saveAppEntry() {
         viewModelScope.launch {
+            Log.i("Aman", "Button clicked")
             appEntryUseCases.saveAppEntry()
         }
     }

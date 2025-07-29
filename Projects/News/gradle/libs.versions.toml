@@ -11,7 +11,7 @@ composeBom = "2024.09.00"
 coreSplashScreen = "1.0.1"
 datastorePreferences = "1.0.0"
 hilt = "2.51"
-hiltNavigationCompose = "1.0.0"
+hiltNavigationCompose = "1.2.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
