@@ -2,7 +2,6 @@ package com.example.exoplayerdemo
 
 import android.content.Context
 import android.net.Uri
-import androidx.fragment.app.FragmentManager
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
@@ -75,5 +74,10 @@ class DownloadTracker(
         return downloadHelper.getDownloadRequest(
             Util.getUtf8Bytes(Preconditions.checkNotNull<String>(mediaItem.mediaMetadata.title.toString()))
         )
+    }
+
+    fun isDownloaded(mediaItem: MediaItem): Boolean {
+        val download = downloads[Preconditions.checkNotNull(mediaItem.localConfiguration).uri]
+        return download != null && download.state != Download.STATE_FAILED
     }
 }

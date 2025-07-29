@@ -2,6 +2,7 @@ package com.example.exoplayerdemo
 
 import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import android.widget.Button
 import androidx.activity.ComponentActivity
 import androidx.annotation.OptIn
@@ -78,7 +79,11 @@ class MainActivity : ComponentActivity() {
             /* context= */
             this,
         )
-        downloadTracker.startDownload(createDefaultMediaItem(), renderersFactory)
+        val mediaItem: MediaItem = createDefaultMediaItem()
+        downloadTracker.startDownload(mediaItem, renderersFactory)
+
+        val isDownloaded: Boolean = downloadTracker.isDownloaded(mediaItem)
+        Log.i("Aman", "isDownloaded: $isDownloaded")
     }
 
     override fun onStart() {
