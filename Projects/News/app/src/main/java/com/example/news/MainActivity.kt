@@ -10,12 +10,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
-import com.example.news.presentation.onboarding.OnBoardingScreen
 import androidx.core.view.WindowCompat
-import androidx.lifecycle.lifecycleScope
-import com.example.news.domain.usecases.AppEntryUseCases
+import com.example.news.presentation.onboarding.OnBoardingScreen
+import com.example.news.presentation.onboarding.OnBoardingViewModel
 import com.example.news.ui.theme.NewsTheme
 import dagger.hilt.android.AndroidEntryPoint
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.lifecycleScope
+import com.example.news.domain.usecases.AppEntryUseCases
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -23,24 +25,28 @@ import javax.inject.Inject
 class MainActivity : ComponentActivity() {
 
     @Inject
-    lateinit var appEntryUseCases: AppEntryUseCases
+    lateinit var useCases: AppEntryUseCases
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         WindowCompat.setDecorFitsSystemWindows(window, false)
         installSplashScreen()
-        setContent {
-            NewsTheme(dynamicColor = false) {
-                Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.background)) {
-                    OnBoardingScreen()
-                }
+
+        lifecycleScope.launch {
+            useCases.readAppEntry().collect() {
+                Log.d("Aman", "onCreate: $it")
             }
         }
 
-        lifecycleScope.launch {
-            appEntryUseCases.readAppEntry().collect {
-                Log.d("Aman", "onCreate: $it")
+        setContent {
+            NewsTheme(dynamicColor = false) {
+                Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.background)) {
+                    val viewModel: OnBoardingViewModel = hiltViewModel()
+                    OnBoardingScreen(
+                        event = viewModel::onEvent
+                    )
+                }
             }
         }
     }
