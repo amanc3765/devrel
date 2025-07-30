@@ -1,5 +1,6 @@
 package com.example.exoplayerreview
 
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.media3.common.MediaItem
@@ -12,6 +13,10 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var playerView: PlayerView
     private var player: ExoPlayer? = null
+
+    private var playWhenReady = true
+    private var mediaItemIndex = 0
+    private var playbackPosition = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,17 +60,26 @@ class MainActivity : ComponentActivity() {
     private fun initializePlayer() {
         player = ExoPlayer.Builder(this).build()
 
-        val mediaItem =
-            MediaItem.fromUri("https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4")
-        player?.setMediaItem(mediaItem)
+        val mediaItem = MediaItem.fromUri(getString(R.string.default_video_uri))
+        val secondMediaItem = MediaItem.fromUri(getString(R.string.default_audio_uri))
 
-        playerView.player = player
-        player?.playWhenReady = true
-        player?.prepare()
+        player?.let { exoPlayer ->
+            playerView.player = exoPlayer
+            exoPlayer.setMediaItems(
+                listOf(mediaItem, secondMediaItem), mediaItemIndex, playbackPosition
+            )
+            exoPlayer.playWhenReady = playWhenReady
+            exoPlayer.prepare()
+        }
     }
 
     private fun releasePlayer() {
-        player?.release()
+        player?.let { exoPlayer ->
+            playbackPosition = exoPlayer.currentPosition
+            mediaItemIndex = exoPlayer.currentMediaItemIndex
+            playWhenReady = exoPlayer.playWhenReady
+            exoPlayer.release()
+        }
         player = null
     }
 }
