@@ -1,13 +1,20 @@
 package com.example.exoplayerreview
 
+import android.net.Uri
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.core.net.toUri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
+import androidx.media3.datasource.DataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.offline.DownloadService
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.ui.PlayerView
 
+@UnstableApi
 class MainActivity : ComponentActivity() {
 
     private lateinit var playerView: PlayerView
@@ -17,11 +24,17 @@ class MainActivity : ComponentActivity() {
     private var mediaItemIndex = 0
     private var playbackPosition = 0L
 
+    private lateinit var downloadTracker: DownloadTracker
+    private lateinit var dataSourceFactory: DataSource.Factory
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         setContentView(R.layout.activity_main)
         playerView = findViewById(R.id.playerView)
+
+        dataSourceFactory = DownloadUtil.getDataSourceFactory(this)
+        downloadMedia()
     }
 
     @androidx.annotation.OptIn(UnstableApi::class)
@@ -57,15 +70,33 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun initializePlayer() {
-        player = ExoPlayer.Builder(this).build()
+//        player = ExoPlayer.Builder(this).build()
 
-        val mediaItem = MediaItem.fromUri(getString(R.string.default_video_uri))
+//        val mediaItem = MediaItem.fromUri(getString(R.string.default_video_uri))
+//        val secondMediaItem = MediaItem.fromUri(getString(R.string.default_audio_uri))
+//
+//        player?.let { exoPlayer ->
+//            playerView.player = exoPlayer
+//            exoPlayer.setMediaItems(
+//                listOf(mediaItem, secondMediaItem), mediaItemIndex, playbackPosition
+//            )
+//            exoPlayer.playWhenReady = playWhenReady
+//            exoPlayer.prepare()
+//        }
+
+        val mediaSourceFactory =
+            DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
+        val exoPlayerBuilder: ExoPlayer.Builder = ExoPlayer.Builder(this).setMediaSourceFactory(
+            mediaSourceFactory
+        )
+        player = exoPlayerBuilder.build()
+
+        val firstMediaItem = MediaItem.fromUri(getString(R.string.default_video_uri))
         val secondMediaItem = MediaItem.fromUri(getString(R.string.default_audio_uri))
-
         player?.let { exoPlayer ->
             playerView.player = exoPlayer
             exoPlayer.setMediaItems(
-                listOf(mediaItem, secondMediaItem), mediaItemIndex, playbackPosition
+                listOf(firstMediaItem, secondMediaItem), mediaItemIndex, playbackPosition
             )
             exoPlayer.playWhenReady = playWhenReady
             exoPlayer.prepare()
@@ -80,5 +111,45 @@ class MainActivity : ComponentActivity() {
             exoPlayer.release()
         }
         player = null
+    }
+
+    private fun downloadMedia() {
+        startDownloadService()
+
+        val downloadManager = DownloadUtil.getDownloadManager(this)
+        downloadTracker = DownloadTracker(this, downloadManager)
+
+        val downloadList: List<Uri> = listOf(
+            getString(R.string.default_video_uri).toUri(),
+            getString(R.string.default_audio_uri).toUri()
+        )
+
+        for ((index, uri) in downloadList.withIndex()) {
+            val mediaId = uri.toString()
+
+            val isDownloaded = downloadTracker.isDownloaded(uri)
+            Log.i("Aman", "Is $uri downloaded: $isDownloaded")
+
+            if (!isDownloaded) {
+                downloadTracker.startDownload(mediaId, uri)
+                Log.i("Aman", "Started download for: $uri with ID: $mediaId")
+            } else {
+                Log.i("Aman", "$uri is already downloaded.")
+            }
+        }
+    }
+
+    @UnstableApi
+    private fun startDownloadService() {
+        try {
+            DownloadService.start(this, DemoDownloadService::class.java)
+            Log.d("Aman", "Download service started")
+        } catch (e: IllegalStateException) {
+            Log.e(
+                "Aman", "Failed to start download service in background, attempting foreground.", e
+            )
+            DownloadService.startForeground(this, DemoDownloadService::class.java)
+            Log.d("Aman", "Download service started in foreground")
+        }
     }
 }
