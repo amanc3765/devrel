@@ -1,6 +1,5 @@
 package com.example.exoplayerreview
 
-import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.media3.common.MediaItem
