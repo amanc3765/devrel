@@ -6,6 +6,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.database.DatabaseProvider
 import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.datasource.cache.Cache
@@ -35,7 +36,7 @@ object DownloadUtil {
                 context,
                 getDatabaseProvider(context),
                 getDownloadCache(context),
-                getHttpDataSourceFactory(context),
+                getHttpDataSourceFactory(),
                 Executor(Runnable::run)
             )
             downloadManager?.addListener(object : DownloadManager.Listener {
@@ -57,7 +58,7 @@ object DownloadUtil {
     fun getDataSourceFactory(context: Context): DataSource.Factory {
         if (dataSourceFactory == null) {
             val upstreamFactory = DefaultDataSource.Factory(
-                context, getHttpDataSourceFactory(context)
+                context, getHttpDataSourceFactory()
             )
             dataSourceFactory = buildReadOnlyCacheDataSource(
                 upstreamFactory, getDownloadCache(context)
@@ -66,33 +67,7 @@ object DownloadUtil {
         return dataSourceFactory!!
     }
 
-    private fun getDatabaseProvider(context: Context): DatabaseProvider {
-        if (databaseProvider == null) {
-            databaseProvider = StandaloneDatabaseProvider(context)
-        }
-        return databaseProvider!!
-    }
-
-    private fun getDownloadCache(context: Context): Cache {
-        if (downloadCache == null) {
-            downloadCache = SimpleCache(
-                getDownloadDirectory(context), NoOpCacheEvictor(), getDatabaseProvider(context)
-            )
-        }
-        return downloadCache!!
-    }
-
-    private fun getDownloadDirectory(context: Context): File {
-        if (downloadDirectory == null) {
-            downloadDirectory = context.getExternalFilesDir(null)
-            if (downloadDirectory == null) {
-                downloadDirectory = context.filesDir
-            }
-        }
-        return downloadDirectory!!
-    }
-
-    private fun getHttpDataSourceFactory(context: Context): DefaultHttpDataSource.Factory {
+    private fun getHttpDataSourceFactory(): DefaultHttpDataSource.Factory {
         if (httpDataSourceFactory == null) {
             httpDataSourceFactory = DefaultHttpDataSource.Factory()
         }
@@ -116,6 +91,33 @@ object DownloadUtil {
             .setUpstreamDataSourceFactory(upstreamFactory).setCacheWriteDataSinkFactory(null)
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR).setEventListener(eventListener)
     }
+
+    private fun getDownloadCache(context: Context): Cache {
+        if (downloadCache == null) {
+            downloadCache = SimpleCache(
+                getDownloadDirectory(context), NoOpCacheEvictor(), getDatabaseProvider(context)
+            )
+        }
+        return downloadCache!!
+    }
+
+    private fun getDownloadDirectory(context: Context): File {
+        if (downloadDirectory == null) {
+            downloadDirectory = context.getExternalFilesDir(null)
+            if (downloadDirectory == null) {
+                downloadDirectory = context.filesDir
+            }
+        }
+        return downloadDirectory!!
+    }
+
+    private fun getDatabaseProvider(context: Context): DatabaseProvider {
+        if (databaseProvider == null) {
+            databaseProvider = StandaloneDatabaseProvider(context)
+        }
+        return databaseProvider!!
+    }
+
 
     fun getDownloadNotificationHelper(
         context: Context

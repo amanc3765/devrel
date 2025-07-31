@@ -49,7 +49,6 @@ class DownloadTracker(
         DownloadService.sendAddDownload(
             context, DemoDownloadService::class.java, downloadRequest,  /* foreground= */false
         )
-        Log.i(TAG, "Starting download for $contentUri")
     }
 
     fun isDownloaded(contentUri: Uri): Boolean {

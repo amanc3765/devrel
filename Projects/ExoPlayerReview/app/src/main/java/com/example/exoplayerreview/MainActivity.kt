@@ -10,8 +10,11 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
 import androidx.media3.datasource.DataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.analytics.AnalyticsListener
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.LoadEventInfo
+import androidx.media3.exoplayer.source.MediaLoadData
 import androidx.media3.ui.PlayerView
 
 @UnstableApi
@@ -70,20 +73,6 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun initializePlayer() {
-//        player = ExoPlayer.Builder(this).build()
-
-//        val mediaItem = MediaItem.fromUri(getString(R.string.default_video_uri))
-//        val secondMediaItem = MediaItem.fromUri(getString(R.string.default_audio_uri))
-//
-//        player?.let { exoPlayer ->
-//            playerView.player = exoPlayer
-//            exoPlayer.setMediaItems(
-//                listOf(mediaItem, secondMediaItem), mediaItemIndex, playbackPosition
-//            )
-//            exoPlayer.playWhenReady = playWhenReady
-//            exoPlayer.prepare()
-//        }
-
         val mediaSourceFactory =
             DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
         val exoPlayerBuilder: ExoPlayer.Builder = ExoPlayer.Builder(this).setMediaSourceFactory(
@@ -95,10 +84,32 @@ class MainActivity : ComponentActivity() {
         val secondMediaItem = MediaItem.fromUri(getString(R.string.default_audio_uri))
         player?.let { exoPlayer ->
             playerView.player = exoPlayer
+
             exoPlayer.setMediaItems(
                 listOf(firstMediaItem, secondMediaItem), mediaItemIndex, playbackPosition
             )
             exoPlayer.playWhenReady = playWhenReady
+            exoPlayer.addAnalyticsListener(object : AnalyticsListener {
+                override fun onLoadStarted(
+                    eventTime: AnalyticsListener.EventTime,
+                    loadEventInfo: LoadEventInfo,
+                    mediaLoadData: MediaLoadData
+                ) {
+                    Log.d("Aman", "➡️ Load started: ${loadEventInfo.dataSpec.uri}")
+                }
+
+                override fun onLoadCompleted(
+                    eventTime: AnalyticsListener.EventTime,
+                    loadEventInfo: LoadEventInfo,
+                    mediaLoadData: MediaLoadData
+                ) {
+                    Log.d(
+                        "Aman",
+                        "✅ Load completed: ${loadEventInfo.dataSpec.uri}, bytes loaded: ${loadEventInfo.bytesLoaded}"
+                    )
+                }
+            })
+
             exoPlayer.prepare()
         }
     }
@@ -128,13 +139,11 @@ class MainActivity : ComponentActivity() {
             val mediaId = uri.toString()
 
             val isDownloaded = downloadTracker.isDownloaded(uri)
-            Log.i("Aman", "Is $uri downloaded: $isDownloaded")
-
             if (!isDownloaded) {
                 downloadTracker.startDownload(mediaId, uri)
-                Log.i("Aman", "Started download for: $uri with ID: $mediaId")
+                Log.i("Aman", "False : Started download for: $uri with ID: $mediaId")
             } else {
-                Log.i("Aman", "$uri is already downloaded.")
+                Log.i("Aman", "True: $uri is already downloaded.")
             }
         }
     }
