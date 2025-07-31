@@ -9,8 +9,11 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.util.Util
 import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.cache.CacheDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.analytics.AnalyticsListener
+import androidx.media3.exoplayer.offline.Download
+import androidx.media3.exoplayer.offline.DownloadManager
 import androidx.media3.exoplayer.offline.DownloadService
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.LoadEventInfo
@@ -27,8 +30,9 @@ class MainActivity : ComponentActivity() {
     private var mediaItemIndex = 0
     private var playbackPosition = 0L
 
+    private lateinit var cacheDataSourceFactory: DataSource.Factory
+    private lateinit var downloadManager: DownloadManager
     private lateinit var downloadTracker: DownloadTracker
-    private lateinit var dataSourceFactory: DataSource.Factory
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,7 +40,7 @@ class MainActivity : ComponentActivity() {
         setContentView(R.layout.activity_main)
         playerView = findViewById(R.id.playerView)
 
-        dataSourceFactory = DownloadUtil.getDataSourceFactory(this)
+        initializeDownloadComponents()
         downloadMedia()
     }
 
@@ -74,7 +78,7 @@ class MainActivity : ComponentActivity() {
 
     private fun initializePlayer() {
         val mediaSourceFactory =
-            DefaultMediaSourceFactory(this).setDataSourceFactory(dataSourceFactory)
+            DefaultMediaSourceFactory(this).setDataSourceFactory(cacheDataSourceFactory)
         val exoPlayerBuilder: ExoPlayer.Builder = ExoPlayer.Builder(this).setMediaSourceFactory(
             mediaSourceFactory
         )
@@ -124,10 +128,54 @@ class MainActivity : ComponentActivity() {
         player = null
     }
 
-    private fun downloadMedia() {
-        startDownloadService()
+    private fun initializeDownloadComponents() {
+        cacheDataSourceFactory = DefaultDownloadManagerImpl.getCacheDataSourceFactory(this)
+        (cacheDataSourceFactory as CacheDataSource.Factory).setEventListener(object :
+            CacheDataSource.EventListener {
+            override fun onCachedBytesRead(cacheSizeBytes: Long, cachedBytesRead: Long) {
+                Log.d("Aman", "Read $cachedBytesRead bytes from cache")
+            }
 
-        val downloadManager = DownloadUtil.getDownloadManager(this)
+            override fun onCacheIgnored(reason: Int) {
+                Log.w("Aman", "Cache ignored: reason $reason")
+            }
+        })
+
+        downloadManager = DefaultDownloadManagerImpl.getDownloadManager(this)
+        downloadManager.addListener(object : DownloadManager.Listener {
+            override fun onDownloadChanged(
+                downloadManager: DownloadManager, download: Download, finalException: Exception?
+            ) {
+                when (download.state) {
+                    Download.STATE_QUEUED -> Log.d("Aman", "Download queued")
+                    Download.STATE_REMOVING -> Log.d("Aman", "Download removing")
+                    Download.STATE_DOWNLOADING -> Log.d("Aman", "Download in progress")
+                    Download.STATE_STOPPED -> Log.d("Aman", "Download stopped")
+                    Download.STATE_RESTARTING -> Log.d("Aman", "Download restarting")
+                    Download.STATE_FAILED -> Log.e("Aman", "Download failed")
+                    Download.STATE_COMPLETED -> Log.d("Aman", "Download completed")
+                }
+            }
+        })
+
+        startDownloadService()
+    }
+
+    @UnstableApi
+    private fun startDownloadService() {
+        try {
+            DownloadService.start(this, DemoDownloadService::class.java)
+            Log.d("Aman", "Download service started")
+        } catch (e: IllegalStateException) {
+            Log.e(
+                "Aman", "Failed to start download service in background, attempting foreground.", e
+            )
+            DownloadService.startForeground(this, DemoDownloadService::class.java)
+            Log.d("Aman", "Download service started in foreground")
+        }
+    }
+
+    private fun downloadMedia() {
         downloadTracker = DownloadTracker(this, downloadManager)
 
         val downloadList: List<Uri> = listOf(
@@ -145,20 +193,6 @@ class MainActivity : ComponentActivity() {
             } else {
                 Log.i("Aman", "True: $uri is already downloaded.")
             }
-        }
-    }
-
-    @UnstableApi
-    private fun startDownloadService() {
-        try {
-            DownloadService.start(this, DemoDownloadService::class.java)
-            Log.d("Aman", "Download service started")
-        } catch (e: IllegalStateException) {
-            Log.e(
-                "Aman", "Failed to start download service in background, attempting foreground.", e
-            )
-            DownloadService.startForeground(this, DemoDownloadService::class.java)
-            Log.d("Aman", "Download service started in foreground")
         }
     }
 }
