@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">MediaExtractorApp</string>
+    <string name="audio_url">https://storage.googleapis.com/exoplayer-test-media-0/Jazz_In_Paris.mp3</string>
+    <string name="video_url">https://storage.googleapis.com/exoplayer-test-media-0/BigBuckBunny_320x180.mp4</string>
 </resources>

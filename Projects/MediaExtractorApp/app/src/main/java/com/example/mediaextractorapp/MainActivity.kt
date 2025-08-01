@@ -1,47 +1,93 @@
 package com.example.mediaextractorapp
 
+import android.content.Context
+import android.media.MediaFormat
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.mediaextractorapp.ui.theme.MediaExtractorAppTheme
+import androidx.annotation.RequiresApi
+import androidx.annotation.OptIn
+import androidx.core.net.toUri
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.MediaExtractorCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import java.nio.ByteBuffer
 
+const val TAG = "Aman"
+
+@RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            MediaExtractorAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
+
+        CoroutineScope(Dispatchers.IO).launch {
+            runExtractor(this@MainActivity)
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    @OptIn(UnstableApi::class)
+    fun runExtractor(context: Context) {
+        val extractor = MediaExtractorCompat(context)
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MediaExtractorAppTheme {
-        Greeting("Android")
+//        val mediaUri: Uri = getString(R.string.audio_url).toUri()
+        val mediaUri: Uri = getString(R.string.video_url).toUri()
+        extractor.setDataSource(mediaUri, 0L)
+
+        Log.i(TAG, "Number of tracks: ${extractor.trackCount}")
+        for (i in 0 until extractor.trackCount) {
+            val mediaFormat: MediaFormat = extractor.getTrackFormat(i)
+
+            Log.i(TAG, "----- Track $i -----")
+            Log.i(TAG, "$mediaFormat")
+//            ExtractorUtil.printMediaFormat(mediaFormat)
+
+            extractor.selectTrack(i)
+            Log.i(TAG, "Selected track $i")
+//            extractor.unselectTrack(i)
+        }
+
+        val metrics = extractor.metrics  // or extractor.getMetrics()
+        Log.i(TAG, "Metrics: $metrics")
+
+        val targetTimeUs = 595_000_000L
+//        extractor.seekTo(targetTimeUs, MediaExtractorCompat.SEEK_TO_PREVIOUS_SYNC) // 595_904_000
+//        extractor.seekTo(targetTimeUs, MediaExtractorCompat.SEEK_TO_NEXT_SYNC)     // 596_224_000
+        extractor.seekTo(targetTimeUs, MediaExtractorCompat.SEEK_TO_CLOSEST_SYNC)    // 596_224_000
+
+        val buffer = ByteBuffer.allocate(10 * 1024 * 1024)
+        while (true) {
+            val trackIndex = extractor.sampleTrackIndex
+            if (trackIndex < 0) break
+
+            val readBytes = extractor.readSampleData(buffer, 0)
+            if (readBytes < 0) break
+
+            val sampleTime: Long = extractor.sampleTime
+            val sampleFlags: Int = extractor.sampleFlags
+            Log.i(
+                TAG, "Track %2d: Read %8d bytes at %12d us, flags %d".format(
+                    trackIndex, readBytes, sampleTime, sampleFlags
+                )
+            )
+
+            val cachedUs = extractor.cachedDuration
+            Log.d(TAG, "Cached duration ahead: $cachedUs µs")
+
+            extractor.advance()
+        }
+
+        val isComplete = extractor.hasCacheReachedEndOfStream()
+        if (isComplete) {
+            Log.d(TAG, "All data is cached. End of stream reached.")
+        }
+
+        extractor.release()
+        Log.i(TAG, "Extractor released.")
     }
+
 }
