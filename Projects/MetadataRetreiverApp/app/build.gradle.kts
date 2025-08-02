@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.mediaextractorapp"
+    namespace = "com.example.metadataretreiverapp"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.mediaextractorapp"
+        applicationId = "com.example.metadataretreiverapp"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -51,7 +51,6 @@ dependencies {
     implementation(libs.androidx.material3)
 
     implementation(libs.androidx.media3.exoplayer)
-    implementation(libs.androidx.media3.exoplayer.dash)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

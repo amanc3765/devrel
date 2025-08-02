@@ -2,14 +2,16 @@ package com.example.mediaextractorapp
 
 import android.content.Context
 import android.media.MediaFormat
+import android.media.metrics.MediaMetricsManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.annotation.RequiresApi
 import androidx.annotation.OptIn
+import androidx.annotation.RequiresApi
 import androidx.core.net.toUri
+import androidx.media3.common.DrmInitData
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.MediaExtractorCompat
 import kotlinx.coroutines.CoroutineScope
@@ -19,7 +21,7 @@ import java.nio.ByteBuffer
 
 const val TAG = "Aman"
 
-@RequiresApi(Build.VERSION_CODES.O)
+@RequiresApi(Build.VERSION_CODES.S)
 class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -34,9 +36,17 @@ class MainActivity : ComponentActivity() {
     fun runExtractor(context: Context) {
         val extractor = MediaExtractorCompat(context)
 
+        val mediaMetricsManager = context.getSystemService(MediaMetricsManager::class.java)
+        val logSessionId = mediaMetricsManager?.createPlaybackSession()?.sessionId!!
+        extractor.logSessionId = logSessionId
+        val currentSession = extractor.logSessionId
+        Log.d(TAG, "Current LogSessionId: $currentSession")
+
 //        val mediaUri: Uri = getString(R.string.audio_url).toUri()
-        val mediaUri: Uri = getString(R.string.video_url).toUri()
+//        val mediaUri: Uri = getString(R.string.video_url).toUri()
+        val mediaUri: Uri = getString(R.string.drm_url).toUri()
         extractor.setDataSource(mediaUri, 0L)
+
 
         Log.i(TAG, "Number of tracks: ${extractor.trackCount}")
         for (i in 0 until extractor.trackCount) {
@@ -49,6 +59,9 @@ class MainActivity : ComponentActivity() {
             extractor.selectTrack(i)
             Log.i(TAG, "Selected track $i")
 //            extractor.unselectTrack(i)
+
+            val drmInitData: DrmInitData? = extractor.drmInitData
+            Log.d(TAG, "DrmInitData: $drmInitData")
         }
 
         val metrics = extractor.metrics  // or extractor.getMetrics()
@@ -69,14 +82,14 @@ class MainActivity : ComponentActivity() {
 
             val sampleTime: Long = extractor.sampleTime
             val sampleFlags: Int = extractor.sampleFlags
-            Log.i(
-                TAG, "Track %2d: Read %8d bytes at %12d us, flags %d".format(
-                    trackIndex, readBytes, sampleTime, sampleFlags
-                )
-            )
-
-            val cachedUs = extractor.cachedDuration
-            Log.d(TAG, "Cached duration ahead: $cachedUs µs")
+//            Log.i(
+//                TAG, "Track %2d: Read %8d bytes at %12d us, flags %d".format(
+//                    trackIndex, readBytes, sampleTime, sampleFlags
+//                )
+//            )
+//
+//            val cachedUs = extractor.cachedDuration
+//            Log.d(TAG, "Cached duration ahead: $cachedUs µs")
 
             extractor.advance()
         }
