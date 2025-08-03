@@ -20,6 +20,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        retrieverTest()
+    }
+
+    private fun retrieverTest() {
         for (i in 0..<25) {
             mediaPathList.shuffle()
             mediaPathList.forEach { mediaPath ->
