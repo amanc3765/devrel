@@ -3,6 +3,7 @@ package com.example.metadataretrievermedia3
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import kotlin.math.roundToLong
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
 
@@ -17,7 +18,6 @@ class MainActivity : ComponentActivity() {
         "/sdcard/Download/mediadataset/file_example_MP4_1280_10MG.mp4",
         "/sdcard/Download/mediadataset/file_example_MP4_1920_18MG.mp4",
     )
-
 
     private var extractorTimeMap = mutableMapOf<String, MutableList<Long>>()
     private var retrieverTimeMap = mutableMapOf<String, MutableList<Long>>()
@@ -41,8 +41,8 @@ class MainActivity : ComponentActivity() {
         }
 
         extractorTimeMap.forEach { (mediaPath, timeList) ->
-            val meanTime = timeList.average()
-            Log.d(TAG, "Extraction time for $mediaPath: $meanTime µs")
+            val meanTimeMs = (timeList.average() / 1000).roundToLong()
+            Log.d(TAG, "Extraction time for $mediaPath: $meanTimeMs ms")
         }
     }
 
@@ -50,8 +50,8 @@ class MainActivity : ComponentActivity() {
         for (i in 0..<25) {
             mediaPathList.shuffle()
             mediaPathList.forEach { mediaPath ->
-                val performanceTest = PerformanceTest(this, mediaPath, 5)
-                val meanTimeUs = performanceTest.startMetadataRetrievalTest(this)
+                val meanTimeUs =
+                    PerformanceTest(this, mediaPath, 5).startMetadataRetrievalTest(this)
                 retrieverTimeMap.getOrPut(mediaPath) { mutableListOf() }.add(meanTimeUs)
             }
         }
