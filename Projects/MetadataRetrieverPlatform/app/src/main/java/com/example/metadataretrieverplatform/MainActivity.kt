@@ -13,10 +13,16 @@ const val TAG = "PlatformTest"
 class MainActivity : ComponentActivity() {
 
     private val mediaPathList = mutableListOf(
-        "/sdcard/Download/mediadataset/file_example_MP4_480_1_5MG.mp4",
-        "/sdcard/Download/mediadataset/file_example_MP4_640_3MG.mp4",
-        "/sdcard/Download/mediadataset/file_example_MP4_1280_10MG.mp4",
-        "/sdcard/Download/mediadataset/file_example_MP4_1920_18MG.mp4",
+//        "/sdcard/Download/mediadataset/file_example_MP4_480_1_5MG.mp4",
+//        "/sdcard/Download/mediadataset/file_example_MP4_640_3MG.mp4",
+//        "/sdcard/Download/mediadataset/file_example_MP4_1280_10MG.mp4",
+//        "/sdcard/Download/mediadataset/file_example_MP4_1920_18MG.mp4",
+//        "/sdcard/Download/mediadataset/video_1920x1080_5s_2000k_libx264.mp4",
+//        "/sdcard/Download/mediadataset/video_1920x1080_5s_5000k_libvpx-vp9.webm",
+//        "/sdcard/Download/mediadataset/video_1920x1080_5s_5000k_libaom-av1.mkv",
+        "/sdcard/Download/mediadataset/video_1920x1080_30s_5000k_libaom-av1.mkv",
+        "/sdcard/Download/mediadataset/video_1920x1080_30s_5000k_libx264.mp4",
+        "/sdcard/Download/mediadataset/video_1920x1080_30s_5000k_libvpx-vp9.webm"
     )
 
     private var extractorTimeMap = mutableMapOf<String, MutableList<Long>>()
@@ -30,7 +36,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun extractorTest() {
-        for (i in 0..<5) {
+        for (i in 0..<50) {
             mediaPathList.shuffle()
             mediaPathList.forEach { mediaPath ->
                 val meanTimeUs = ExtractorTest(mediaPath, 5).startExtractorTest(this)

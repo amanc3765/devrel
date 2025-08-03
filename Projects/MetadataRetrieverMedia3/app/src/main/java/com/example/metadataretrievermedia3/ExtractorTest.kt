@@ -24,19 +24,19 @@ class ExtractorTest(private val mediaPath: String, private val numIter: Int) {
         for (i in 0..<numIter) {
             val currTimeUs = runExtractorMedia3(context)
             totalTimeUs += currTimeUs
-            Log.d(
-                TAG, String.format(
-                    Locale.ROOT, "%30s %3d: %7d", mediaPath, i, currTimeUs
-                )
-            )
+//            Log.d(
+//                TAG, String.format(
+//                    Locale.ROOT, "%30s %3d: %7d", mediaPath, i, currTimeUs
+//                )
+//            )
         }
 
         val meanTimeUs = totalTimeUs / numIter
-        Log.d(
-            TAG, String.format(
-                Locale.ROOT, "(single) %7d", meanTimeUs,
-            )
-        )
+//        Log.d(
+//            TAG, String.format(
+//                Locale.ROOT, "(single) %7d", meanTimeUs,
+//            )
+//        )
 
         return meanTimeUs
     }
