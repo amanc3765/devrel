@@ -1,10 +1,10 @@
-package com.example.metadataretrievermedia3
+package com.example.metadataretrieverplatform
 
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 
-const val TAG = "Media3Test"
+const val TAG = "PlatformTest"
 
 class MainActivity : ComponentActivity() {
 
@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
             mediaPathList.shuffle()
             mediaPathList.forEach { mediaPath ->
                 val performanceTest = PerformanceTest(this, mediaPath, 5)
-                val meanTimeUs = performanceTest.startMetadataRetrievalTest(this)
+                val meanTimeUs = performanceTest.startMetadataRetrievalTest()
                 timeMap.getOrPut(mediaPath) { mutableListOf() }.add(meanTimeUs)
             }
         }

@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.metadataretrievermedia3"
+    namespace = "com.example.metadataretrieverplatform"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.metadataretrievermedia3"
+        applicationId = "com.example.metadataretrieverplatform"
         minSdk = 24
         targetSdk = 36
         versionCode = 1
@@ -22,8 +22,7 @@ android {
         release {
             isMinifyEnabled = false
             proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
             )
         }
     }
