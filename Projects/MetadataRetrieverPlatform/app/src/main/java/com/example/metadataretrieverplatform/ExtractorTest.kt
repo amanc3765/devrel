@@ -17,7 +17,10 @@ class ExtractorTest(private val mediaPath: String, private val numIter: Int) {
     fun startExtractorTest(context: Context): Long {
         var totalTimeUs: Long = 0L
         for (i in 0..<numIter) {
-            val currTimeUs = runExtractorMedia3(context)
+            val currTimeUs = runExtractorPlatform(context)
+            if (currTimeUs < 0) {
+                continue
+            }
             totalTimeUs += currTimeUs
 //            Log.d(
 //                TAG, String.format(
@@ -27,65 +30,61 @@ class ExtractorTest(private val mediaPath: String, private val numIter: Int) {
         }
 
         val meanTimeUs = totalTimeUs / numIter
+<<<<<<< HEAD
 //        Log.d(
 //            TAG, String.format(
 //                Locale.ROOT, "(single) %7d", meanTimeUs,
 //            )
 //        )
+=======
+        Log.d(
+            TAG, String.format(
+                Locale.ROOT, "(single) %s %7d", mediaPath, meanTimeUs,
+            )
+        )
+>>>>>>> 91877b2 (Perf Test: Added video files)
 
         return meanTimeUs
     }
 
 
-    private fun runExtractorMedia3(context: Context): Long {
+    private fun runExtractorPlatform(context: Context): Long {
         val startTimeNs = System.nanoTime()
 
-        val extractor = MediaExtractor()
-        extractor.setDataSource(mediaPath)
+        var extractor: MediaExtractor? = null
+        try {
+            extractor = MediaExtractor()
+            extractor.setDataSource(mediaPath)
 
-        for (i in 0 until extractor.trackCount) {
-//            Log.i(TAG, "----- Track $i -----")
-            val mediaFormat: MediaFormat = extractor.getTrackFormat(i)
-//            Log.i(TAG, "$mediaFormat")
+            for (i in 0 until extractor.trackCount) {
+                val mediaFormat: MediaFormat = extractor.getTrackFormat(i)
+                extractor.selectTrack(i)
+            }
 
-            extractor.selectTrack(i)
-//            Log.i(TAG, "Selected track $i")
+            val metrics = extractor.metrics
+            extractor.seekTo(0L, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
+
+            val buffer = ByteBuffer.allocate(10 * 1024 * 1024)
+            while (true) {
+                val trackIndex = extractor.sampleTrackIndex
+                if (trackIndex < 0) break
+
+                val readBytes = extractor.readSampleData(buffer, 0)
+                if (readBytes < 0) break
+
+                val sampleTime: Long = extractor.sampleTime
+                val sampleFlags: Int = extractor.sampleFlags
+                val cachedUs = extractor.cachedDuration
+
+                extractor.advance()
+            }
+
+            val isComplete = extractor.hasCacheReachedEndOfStream()
+        } catch (e: Exception) {
+            return -1L
+        } finally {
+            extractor?.release()
         }
-
-        val metrics = extractor.metrics
-//        Log.i(TAG, "Metrics: $metrics")
-
-        extractor.seekTo(0L, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
-
-        val buffer = ByteBuffer.allocate(10 * 1024 * 1024)
-        while (true) {
-            val trackIndex = extractor.sampleTrackIndex
-            if (trackIndex < 0) break
-
-            val readBytes = extractor.readSampleData(buffer, 0)
-            if (readBytes < 0) break
-
-            val sampleTime: Long = extractor.sampleTime
-            val sampleFlags: Int = extractor.sampleFlags
-//            Log.i(
-//                TAG, "Track %2d: Read %8d bytes at %12d us, flags %d".format(
-//                    trackIndex, readBytes, sampleTime, sampleFlags
-//                )
-//            )
-
-            val cachedUs = extractor.cachedDuration
-//            Log.d(TAG, "Cached duration ahead: $cachedUs µs")
-
-            extractor.advance()
-        }
-
-        val isComplete = extractor.hasCacheReachedEndOfStream()
-//        if (isComplete) {
-//            Log.d(TAG, "All data is cached. End of stream reached.")
-//        }
-
-        extractor.release()
-//        Log.i(TAG, "Extractor released.")
 
         return (System.nanoTime() - startTimeNs) / 1000
     }

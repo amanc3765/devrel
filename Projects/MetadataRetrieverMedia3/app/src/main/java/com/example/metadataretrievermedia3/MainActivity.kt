@@ -1,46 +1,84 @@
 package com.example.metadataretrievermedia3
 
+import android.app.Activity
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import kotlin.math.roundToLong
 import androidx.activity.ComponentActivity
 import androidx.annotation.RequiresApi
+import java.io.File
+import kotlin.math.roundToLong
 
-const val TAG = "Media3Test"
+const val TAG = "Media3TestToni"
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
 
-    private val mediaPathList = mutableListOf(
-//        "/sdcard/Download/mediadataset/file_example_MP4_480_1_5MG.mp4",
-//        "/sdcard/Download/mediadataset/file_example_MP4_640_3MG.mp4",
-//        "/sdcard/Download/mediadataset/file_example_MP4_1280_10MG.mp4",
-//        "/sdcard/Download/mediadataset/file_example_MP4_1920_18MG.mp4",
-//        "/sdcard/Download/mediadataset/video_1920x1080_5s_2000k_libx264.mp4",
-//        "/sdcard/Download/mediadataset/video_1920x1080_5s_5000k_libvpx-vp9.webm",
-//        "/sdcard/Download/mediadataset/video_1920x1080_5s_5000k_libaom-av1.mkv",
-        "/sdcard/Download/mediadataset/video_1920x1080_30s_5000k_libaom-av1.mkv",
-        "/sdcard/Download/mediadataset/video_1920x1080_30s_5000k_libx264.mp4",
-        "/sdcard/Download/mediadataset/video_1920x1080_30s_5000k_libvpx-vp9.webm"
-    )
+    private val mediaFolderPath = "/sdcard/Download/mediadataset/bitrate/"
+    private val mediaFilesList = getFilesFromFolder()
+
+    private val numWarmupRuns = 3
+    private val numTestRuns = 5
+    private val numIterations = 50
 
     private var extractorTimeMap = mutableMapOf<String, MutableList<Long>>()
     private var retrieverTimeMap = mutableMapOf<String, MutableList<Long>>()
 
+    private fun getFilesFromFolder(): MutableList<String> {
+        val folder = File(mediaFolderPath)
+        if (folder.exists() && folder.isDirectory) {
+            return folder.listFiles()?.filter { it.isFile }?.map { it.absolutePath }
+                ?.toMutableList() ?: mutableListOf()
+        }
+        Log.e(TAG, "Folder does not exist or is not a directory: $mediaFolderPath")
+        return mutableListOf()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        if (mediaFilesList.isEmpty()) {
+            Log.e(TAG, "No media files found in $mediaFolderPath. Aborting tests.")
+            return
+        }
 
-        extractorTest()
-//        retrieverTest()
+//        extractorTest()
+
+//        retrieverTest("Serial") { activity, mediaPath, iterations ->
+//            RetrieverTest(
+//                activity, mediaPath, iterations
+//            ).startMetadataRetrievalTestSerial(activity)
+//        }
+        retrieverTest("Bulk") { activity, mediaPath, iterations ->
+            RetrieverTest(activity, mediaPath, iterations).startMetadataRetrievalTestBulk(activity)
+        }
+
+//        retrieverTest("Serial") { activity, mediaPath, iterations ->
+//            RetrieverTestToni(
+//                activity, mediaPath, iterations
+//            ).startMetadataRetrievalTestSerial(activity)
+//        }
+//        retrieverTest("Bulk") { activity, mediaPath, iterations ->
+//            RetrieverTestToni(activity, mediaPath, iterations).startMetadataRetrievalTestBulk(
+//                activity
+//            )
+//        }
+
     }
 
     private fun extractorTest() {
-        for (i in 0..<50) {
-            mediaPathList.shuffle()
-            mediaPathList.forEach { mediaPath ->
+        for (i in 0..<3) {
+            Log.d(TAG, "Warmup Iteration $i -----------")
+            mediaFilesList.shuffle()
+            mediaFilesList.forEach { mediaPath ->
+                ExtractorTest(mediaPath, 5).startExtractorTest(this)
+            }
+        }
+
+        for (i in 0..<10) {
+            Log.d(TAG, "Iteration $i -----------")
+            mediaFilesList.shuffle()
+            mediaFilesList.forEach { mediaPath ->
                 val meanTimeUs = ExtractorTest(mediaPath, 5).startExtractorTest(this)
                 extractorTimeMap.getOrPut(mediaPath) { mutableListOf() }.add(meanTimeUs)
             }
@@ -52,19 +90,35 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun retrieverTest() {
-        for (i in 0..<25) {
-            mediaPathList.shuffle()
-            mediaPathList.forEach { mediaPath ->
-                val meanTimeUs =
-                    PerformanceTest(this, mediaPath, 5).startMetadataRetrievalTest(this)
+    private fun retrieverTest(
+        mode: String,
+        retrievalFunction: (activity: Activity, mediaPath: String, iterations: Int) -> Long
+    ) {
+        retrieverTimeMap.clear()
+
+        for (i in 1..numWarmupRuns) {
+            Log.i(TAG, " ------------- Warmup Run $i ------------- ")
+            mediaFilesList.shuffle()
+            mediaFilesList.forEach { mediaPath ->
+                retrievalFunction(this, mediaPath, numIterations)
+            }
+        }
+
+        for (i in 1..numTestRuns) {
+            Log.i(TAG, " ------------- Test Run $i ------------- ")
+            mediaFilesList.shuffle()
+            mediaFilesList.forEach { mediaPath ->
+                val meanTimeUs = retrievalFunction(this, mediaPath, numIterations)
                 retrieverTimeMap.getOrPut(mediaPath) { mutableListOf() }.add(meanTimeUs)
             }
         }
 
+        Log.i(TAG, " ------------- Mean Retriever Times ------------- ")
         retrieverTimeMap.forEach { (mediaPath, timeList) ->
-            val meanTime = timeList.average()
-            Log.d(TAG, "Retriever time for $mediaPath: $meanTime µs")
+            Log.d(TAG, "Timelist for $mediaPath: $timeList")
+            val meanTimeMs = (timeList.average() / 1000).roundToLong()
+            Log.d(TAG, "[$TAG][${mode}] Retriever time for $mediaPath: $meanTimeMs ms")
         }
     }
+
 }
