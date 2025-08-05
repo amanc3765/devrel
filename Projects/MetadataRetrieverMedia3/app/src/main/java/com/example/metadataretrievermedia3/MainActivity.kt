@@ -9,7 +9,7 @@ import androidx.annotation.RequiresApi
 import java.io.File
 import kotlin.math.roundToLong
 
-const val TAG = "Media3TestToni"
+const val TAG = "Media3Test"
 
 @RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
@@ -49,20 +49,20 @@ class MainActivity : ComponentActivity() {
 //                activity, mediaPath, iterations
 //            ).startMetadataRetrievalTestSerial(activity)
 //        }
-        retrieverTest("Bulk") { activity, mediaPath, iterations ->
-            RetrieverTest(activity, mediaPath, iterations).startMetadataRetrievalTestBulk(activity)
-        }
-
-//        retrieverTest("Serial") { activity, mediaPath, iterations ->
-//            RetrieverTestToni(
-//                activity, mediaPath, iterations
-//            ).startMetadataRetrievalTestSerial(activity)
-//        }
 //        retrieverTest("Bulk") { activity, mediaPath, iterations ->
-//            RetrieverTestToni(activity, mediaPath, iterations).startMetadataRetrievalTestBulk(
-//                activity
-//            )
+//            RetrieverTest(activity, mediaPath, iterations).startMetadataRetrievalTestBulk(activity)
 //        }
+
+        retrieverTest("Serial") { activity, mediaPath, iterations ->
+            RetrieverTestToni(
+                activity, mediaPath, iterations
+            ).startMetadataRetrievalTestSerial(activity)
+        }
+        retrieverTest("Bulk") { activity, mediaPath, iterations ->
+            RetrieverTestToni(activity, mediaPath, iterations).startMetadataRetrievalTestBulk(
+                activity
+            )
+        }
 
     }
 
