@@ -1,15 +1,14 @@
-package com.example.retrievermedia3aman
+package com.example.retrieverplatform
 
-import android.app.Activity
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import java.io.File
-import kotlin.math.roundToLong
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.Util
+import java.io.File
+import kotlin.math.roundToLong
 
-const val TAG = "Media3TestAman"
+const val TAG = "PlatformTest"
 
 class MainActivity : ComponentActivity() {
 
@@ -48,21 +47,18 @@ class MainActivity : ComponentActivity() {
             Log.d(TAG, it)
         }
 
-        retrieverTest("Serial") { activity, mediaPath, iterations ->
-            RetrieverTestAman(
+        retrieverTest("Serial") { mediaPath, iterations ->
+            RetrieverTest(
                 mediaPath, iterations
-            ).startMetadataRetrievalTestSerial(activity)
+            ).startMetadataRetrievalTestSerial()
         }
-        retrieverTest("Bulk") { activity, mediaPath, iterations ->
-            RetrieverTestAman(mediaPath, iterations).startMetadataRetrievalTestBulk(
-                activity
-            )
+        retrieverTest("Bulk") { mediaPath, iterations ->
+            RetrieverTest(mediaPath, iterations).startMetadataRetrievalTestBulk()
         }
     }
 
     private fun retrieverTest(
-        mode: String,
-        retrievalFunction: (activity: Activity, mediaPath: String, iterations: Int) -> Long
+        mode: String, retrievalFunction: (mediaPath: String, iterations: Int) -> Long
     ) {
         retrieverTimeMap.clear()
 
@@ -70,7 +66,7 @@ class MainActivity : ComponentActivity() {
             Log.i(TAG, " ------------- Warmup Run $i ------------- ")
             mediaFilesList.shuffle()
             mediaFilesList.forEach { mediaPath ->
-                retrievalFunction(this, mediaPath, numIterations)
+                retrievalFunction(mediaPath, numIterations)
             }
         }
 
@@ -78,7 +74,7 @@ class MainActivity : ComponentActivity() {
             Log.i(TAG, " ------------- Test Run $i ------------- ")
             mediaFilesList.shuffle()
             mediaFilesList.forEach { mediaPath ->
-                val meanTimeUs = retrievalFunction(this, mediaPath, numIterations)
+                val meanTimeUs = retrievalFunction(mediaPath, numIterations)
                 retrieverTimeMap.getOrPut(mediaPath) { mutableListOf() }.add(meanTimeUs)
             }
         }

@@ -1,24 +1,23 @@
-package com.example.retrievermedia3aman
+package com.example.retrieverplatform
 
-import android.content.Context
+import android.media.MediaMetadataRetriever
+import android.media.MediaMetadataRetriever.METADATA_KEY_HAS_VIDEO
 import androidx.annotation.OptIn
-import androidx.media3.common.MediaItem
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
-import androidx.media3.exoplayer.MetadataRetriever
-import androidx.media3.exoplayer.source.TrackGroupArray
 import java.util.Locale
+import java.util.concurrent.Executors
 import java.util.concurrent.Future
 
 @OptIn(UnstableApi::class)
-class RetrieverTestAman(
+class RetrieverTest(
     private val mediaPath: String, private val numIter: Int
 ) {
 
-    fun startMetadataRetrievalTestSerial(context: Context): Long {
+    fun startMetadataRetrievalTestSerial(): Long {
         var totalTimeUs: Long = 0L
         for (i in 0..<numIter) {
-            val currTimeUs = retrieveMetadataMedia3(context)
+            val currTimeUs = retrieveMetadataPlatform()
             totalTimeUs += currTimeUs
 //            Log.d(
 //                TAG, String.format(
@@ -31,8 +30,8 @@ class RetrieverTestAman(
         return meanTimeUs
     }
 
-    fun startMetadataRetrievalTestBulk(context: Context): Long {
-        val totalTimeUs = retrieveMetadataMedia3Bulk(context)
+    fun startMetadataRetrievalTestBulk(): Long {
+        val totalTimeUs = retrieveMetadataPlatformBulk()
         val meanTimeUs = totalTimeUs / numIter
         printMeanRetrieverTime(meanTimeUs, "Bulk")
         return meanTimeUs
@@ -49,36 +48,38 @@ class RetrieverTestAman(
         )
     }
 
-    private fun retrieveMetadataMedia3(context: Context): Long {
+    private fun retrieveMetadataPlatform(): Long {
         val startTimeNs = System.nanoTime()
 
-        val metadataRetrieverMedia3: MetadataRetriever = getRetrieverMedia3(context)
+        val metadataRetrieverPlatform: MediaMetadataRetriever = getRetrieverPlatform()
         try {
-            metadataRetrieverMedia3.retrieveTrackGroups().get()
+            metadataRetrieverPlatform.extractMetadata(METADATA_KEY_HAS_VIDEO)
         } catch (e: Exception) {
             throw RuntimeException(e)
         } finally {
-            metadataRetrieverMedia3.close()
+            metadataRetrieverPlatform.release()
         }
 
         return (System.nanoTime() - startTimeNs) / 1000
     }
 
-    private fun retrieveMetadataMedia3Bulk(context: Context): Long {
+    private fun retrieveMetadataPlatformBulk(): Long {
+        val executors = Executors.newFixedThreadPool(5)
         val startTimeNs = System.nanoTime()
 
-        val retrieversAndFutures = mutableListOf<Pair<MetadataRetriever, Future<TrackGroupArray>>>()
+        val retrieversAndFutures = mutableListOf<Pair<MediaMetadataRetriever, Future<*>>>()
         for (i in 0..<numIter) {
-            val metadataRetrieverMedia3: MetadataRetriever = getRetrieverMedia3(context)
-            try {
-                val future = metadataRetrieverMedia3.retrieveTrackGroups()
-                retrieversAndFutures.add(Pair(metadataRetrieverMedia3, future))
-//              Log.d(TAG, "$i: Retriever submitted.")
-            } catch (e: Exception) {
-                Log.e(TAG, "$i: Error retrieving metadata: $e")
+            val metadataRetrieverPlatform: MediaMetadataRetriever = getRetrieverPlatform()
+            val future = executors.submit {
+                try {
+                    metadataRetrieverPlatform.extractMetadata(METADATA_KEY_HAS_VIDEO)
+                } catch (e: Exception) {
+                    Log.e(TAG, "$i: Error retrieving metadata: $e")
+                }
             }
+            retrieversAndFutures.add(Pair(metadataRetrieverPlatform, future))
+//            Log.d(TAG, "$i: Retriever submitted.")
         }
-
         val numRetrievers = retrieversAndFutures.size
         for (i in 0..<numRetrievers) {
             val (retriever, future) = retrieversAndFutures[i]
@@ -97,15 +98,15 @@ class RetrieverTestAman(
             }
         }
 
-        return (System.nanoTime() - startTimeNs) / 1000
+        val totalTime = (System.nanoTime() - startTimeNs) / 1000
+        executors.shutdown()
+        return totalTime
     }
 
-    private fun getRetrieverMedia3(context: Context): MetadataRetriever {
-        val mediaItem = MediaItem.fromUri(mediaPath)
-        val metadataRetrieverMedia3 = MetadataRetriever.Builder(context, mediaItem)
-//                .setMediaSourceFactory(ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context))
-            .build()
-        return metadataRetrieverMedia3
+    private fun getRetrieverPlatform(): MediaMetadataRetriever {
+        val metadataRetrieverPlatform = MediaMetadataRetriever()
+        metadataRetrieverPlatform.setDataSource(mediaPath);
+        return metadataRetrieverPlatform
     }
 
 }
