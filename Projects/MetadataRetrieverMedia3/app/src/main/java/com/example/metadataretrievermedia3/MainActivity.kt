@@ -1,17 +1,14 @@
 package com.example.metadataretrievermedia3
 
 import android.app.Activity
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
-import androidx.annotation.RequiresApi
 import java.io.File
 import kotlin.math.roundToLong
 
 const val TAG = "Media3Test"
 
-@RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
 
     private val mediaFolderPath = "/sdcard/Download/mediadataset/bitrate/"
@@ -44,24 +41,13 @@ class MainActivity : ComponentActivity() {
 
 //        extractorTest()
 
-//        retrieverTest("Serial") { activity, mediaPath, iterations ->
-//            RetrieverTest(
-//                activity, mediaPath, iterations
-//            ).startMetadataRetrievalTestSerial(activity)
-//        }
-//        retrieverTest("Bulk") { activity, mediaPath, iterations ->
-//            RetrieverTest(activity, mediaPath, iterations).startMetadataRetrievalTestBulk(activity)
-//        }
-
         retrieverTest("Serial") { activity, mediaPath, iterations ->
-            RetrieverTestToni(
+            RetrieverTest(
                 activity, mediaPath, iterations
             ).startMetadataRetrievalTestSerial(activity)
         }
         retrieverTest("Bulk") { activity, mediaPath, iterations ->
-            RetrieverTestToni(activity, mediaPath, iterations).startMetadataRetrievalTestBulk(
-                activity
-            )
+            RetrieverTest(activity, mediaPath, iterations).startMetadataRetrievalTestBulk(activity)
         }
 
     }

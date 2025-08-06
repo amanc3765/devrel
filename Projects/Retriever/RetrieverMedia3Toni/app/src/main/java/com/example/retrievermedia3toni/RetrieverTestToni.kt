@@ -1,7 +1,8 @@
-package com.example.metadataretrievermedia3
+package com.example.retrievermedia3toni
 
 import android.app.Activity
 import android.content.Context
+import android.os.Trace
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.Log
@@ -16,17 +17,13 @@ import java.util.concurrent.Future
 
 @OptIn(UnstableApi::class)
 class RetrieverTestToni(
-    private val activity: Activity, private val mediaPath: String, private val numIter: Int
+    private val mediaPath: String, private val numIter: Int
 ) {
-
-    init {
-        Util.maybeRequestReadStoragePermission(activity, MediaItem.fromUri(mediaPath))
-    }
 
     fun startMetadataRetrievalTestSerial(context: Context): Long {
         var totalTimeUs: Long = 0L
         for (i in 0..<numIter) {
-            val currTimeUs = retrieveMetadataMedia3(context)
+            val currTimeUs = retrieveMetadataMedia3(context, i)
             totalTimeUs += currTimeUs
 //            Log.d(
 //                TAG, String.format(
@@ -57,7 +54,8 @@ class RetrieverTestToni(
         )
     }
 
-    private fun retrieveMetadataMedia3(context: Context): Long {
+    private fun retrieveMetadataMedia3(context: Context, i: Int): Long {
+        Trace.beginSection("retrieveMetadataMedia3Aman $i")
         val startTimeNs = System.nanoTime()
 
         try {
@@ -69,6 +67,7 @@ class RetrieverTestToni(
             throw RuntimeException(e)
         }
 
+        Trace.endSection()
         return (System.nanoTime() - startTimeNs) / 1000
     }
 
