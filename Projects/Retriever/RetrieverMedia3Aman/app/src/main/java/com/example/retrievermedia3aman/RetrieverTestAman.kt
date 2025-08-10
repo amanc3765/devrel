@@ -1,11 +1,14 @@
 package com.example.retrievermedia3aman
 
 import android.content.Context
+import android.os.Trace
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.MetadataRetriever
+import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.source.TrackGroupArray
 import java.util.Locale
 import java.util.concurrent.Future
@@ -18,7 +21,7 @@ class RetrieverTestAman(
     fun startMetadataRetrievalTestSerial(context: Context): Long {
         var totalTimeUs: Long = 0L
         for (i in 0..<numIter) {
-            val currTimeUs = retrieveMetadataMedia3(context)
+            val currTimeUs = retrieveMetadataMedia3(context, i)
             totalTimeUs += currTimeUs
 //            Log.d(
 //                TAG, String.format(
@@ -49,7 +52,8 @@ class RetrieverTestAman(
         )
     }
 
-    private fun retrieveMetadataMedia3(context: Context): Long {
+    private fun retrieveMetadataMedia3(context: Context, i: Int): Long {
+        Trace.beginSection("retrieveMetadataMedia3Aman $i")
         val startTimeNs = System.nanoTime()
 
         val metadataRetrieverMedia3: MetadataRetriever = getRetrieverMedia3(context)
@@ -101,11 +105,13 @@ class RetrieverTestAman(
     }
 
     private fun getRetrieverMedia3(context: Context): MetadataRetriever {
+        val mediaSourceFactory =
+            ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context))
         val mediaItem = MediaItem.fromUri(mediaPath)
-        val metadataRetrieverMedia3 = MetadataRetriever.Builder(context, mediaItem)
-//                .setMediaSourceFactory(ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context))
-            .build()
+        val metadataRetrieverMedia3 =
+            MetadataRetriever.Builder(context, mediaItem)
+                .setMediaSourceFactory(mediaSourceFactory)
+                .build()
         return metadataRetrieverMedia3
     }
-
 }

@@ -13,12 +13,12 @@ const val TAG = "Media3TestToni"
 
 class MainActivity : ComponentActivity() {
 
-    private val mediaFolderPath = "/sdcard/Download/mediadataset/bitrate/"
+    private val mediaFolderPath = "/sdcard/Download/dataset/3_bitrate/"
     private lateinit var mediaFilesList: MutableList<String>
     private var retrieverTimeMap = mutableMapOf<String, MutableList<Long>>()
 
-    private val numWarmupRuns = 3
-    private val numTestRuns = 5
+    private val numWarmupRuns = 4
+    private val numTestRuns = 4
     private val numIterations = 50
 
     private fun initializeMediaFiles() {
@@ -48,15 +48,18 @@ class MainActivity : ComponentActivity() {
             Log.d(TAG, it)
         }
 
+//        retrieverTest("Serial") { activity, mediaPath, iterations ->
+//            RetrieverTestToni(
+//                mediaPath, iterations
+//            ).startMetadataRetrievalTestSerial(activity)
+//        }
+//        retrieverTest("Bulk") { activity, mediaPath, iterations ->
+//            RetrieverTestToni(mediaPath, iterations).startMetadataRetrievalTestBulk(
+//                activity
+//            )
+//        }
         retrieverTest("Serial") { activity, mediaPath, iterations ->
-            RetrieverTestToni(
-                mediaPath, iterations
-            ).startMetadataRetrievalTestSerial(activity)
-        }
-        retrieverTest("Bulk") { activity, mediaPath, iterations ->
-            RetrieverTestToni(mediaPath, iterations).startMetadataRetrievalTestBulk(
-                activity
-            )
+            RetrieverTestToniJava(mediaPath).startMetadataRetrievalTest(activity)
         }
 
     }
@@ -86,7 +89,7 @@ class MainActivity : ComponentActivity() {
 
         Log.i(TAG, " ------------- Mean Retriever Times ------------- ")
         retrieverTimeMap.forEach { (mediaPath, timeList) ->
-            Log.d(TAG, "$timeList")
+//            Log.d(TAG, "$timeList")
             val meanTimeMs = (timeList.average() / 1000).roundToLong()
             Log.d(TAG, "[$TAG][${mode}] Retriever time for $mediaPath: $meanTimeMs ms")
         }

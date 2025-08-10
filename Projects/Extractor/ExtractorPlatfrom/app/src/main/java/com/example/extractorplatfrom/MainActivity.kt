@@ -1,8 +1,10 @@
-package com.example.retrieverplatform
+package com.example.extractorplatfrom
 
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
+import androidx.annotation.RequiresApi
 import androidx.media3.common.MediaItem
 import androidx.media3.common.util.Util
 import java.io.File
@@ -10,15 +12,22 @@ import kotlin.math.roundToLong
 
 const val TAG = "PlatformTest"
 
+// /sdcard/Download/mediadataset/1_duration
+// /sdcard/Download/mediadataset/2_fps
+// /sdcard/Download/mediadataset/3_bitrate
+// /sdcard/Download/mediadataset/4_resolution
+// /sdcard/Download/mediadataset/6_container
+
+@RequiresApi(Build.VERSION_CODES.O)
 class MainActivity : ComponentActivity() {
 
-    private val mediaFolderPath = "/sdcard/Download/dataset/1_duration/"
+    private val mediaFolderPath = "/sdcard/Download/dataset/4_resolution/"
     private lateinit var mediaFilesList: MutableList<String>
-    private var retrieverTimeMap = mutableMapOf<String, MutableList<Long>>()
+    private var extractorTimeMap = mutableMapOf<String, MutableList<Long>>()
 
-    private val numWarmupRuns = 4
-    private val numTestRuns = 4
-    private val numIterations = 50
+    private val numWarmupRuns = 3
+    private val numTestRuns = 3
+    private val numIterations = 3
 
     private fun initializeMediaFiles() {
         Util.maybeRequestReadStoragePermission(
@@ -47,26 +56,18 @@ class MainActivity : ComponentActivity() {
             Log.d(TAG, it)
         }
 
-        retrieverTest("Serial") { mediaPath, iterations ->
-            RetrieverTest(
-                mediaPath, iterations
-            ).startMetadataRetrievalTestSerial()
-        }
-//        retrieverTest("Bulk") { mediaPath, iterations ->
-//            RetrieverTest(mediaPath, iterations).startMetadataRetrievalTestBulk()
-//        }
+        extractorTest()
     }
 
-    private fun retrieverTest(
-        mode: String, retrievalFunction: (mediaPath: String, iterations: Int) -> Long
+    private fun extractorTest(
     ) {
-        retrieverTimeMap.clear()
+        extractorTimeMap.clear()
 
         for (i in 1..numWarmupRuns) {
             Log.i(TAG, " ------------- Warmup Run $i ------------- ")
             mediaFilesList.shuffle()
             mediaFilesList.forEach { mediaPath ->
-                retrievalFunction(mediaPath, numIterations)
+                ExtractorTest(mediaPath, numIterations).startExtractorTest(this)
             }
         }
 
@@ -74,16 +75,16 @@ class MainActivity : ComponentActivity() {
             Log.i(TAG, " ------------- Test Run $i ------------- ")
             mediaFilesList.shuffle()
             mediaFilesList.forEach { mediaPath ->
-                val meanTimeUs = retrievalFunction(mediaPath, numIterations)
-                retrieverTimeMap.getOrPut(mediaPath) { mutableListOf() }.add(meanTimeUs)
+                val meanTimeUs = ExtractorTest(mediaPath, numIterations).startExtractorTest(this)
+                extractorTimeMap.getOrPut(mediaPath) { mutableListOf() }.add(meanTimeUs)
             }
         }
 
-        Log.i(TAG, " ------------- Mean Retriever Times ------------- ")
-        retrieverTimeMap.forEach { (mediaPath, timeList) ->
+        Log.i(TAG, " ------------- Mean Extractor Times ------------- ")
+        extractorTimeMap.forEach { (mediaPath, timeList) ->
 //            Log.d(TAG, "$timeList")
             val meanTimeMs = (timeList.average() / 1000).roundToLong()
-            Log.d(TAG, "[$TAG][${mode}] Retriever time for $mediaPath: $meanTimeMs ms")
+            Log.d(TAG, "[$TAG] Extractor time for $mediaPath: $meanTimeMs ms")
         }
     }
 

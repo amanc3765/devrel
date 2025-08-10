@@ -8,6 +8,7 @@ import androidx.media3.common.util.Log
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.exoplayer.MetadataRetriever
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ProgressiveMediaSource
 import androidx.media3.exoplayer.source.TrackGroupArray
 import java.util.Locale
@@ -53,14 +54,16 @@ class RetrieverTestToni(
     }
 
     private fun retrieveMetadataMedia3(context: Context, i: Int): Long {
-        Trace.beginSection("retrieveMetadataMedia3Aman $i")
+        Trace.beginSection("retrieveMetadataMedia3Toni $i")
         val startTimeNs = System.nanoTime()
 
         try {
             val mediaSourceFactory =
                 ProgressiveMediaSource.Factory(DefaultDataSource.Factory(context))
             val mediaItem = MediaItem.fromUri(mediaPath)
-            MetadataRetriever.retrieveMetadata(mediaSourceFactory, mediaItem).get()
+            MetadataRetriever.retrieveMetadata(
+                mediaSourceFactory, mediaItem
+            ).get()
         } catch (e: Exception) {
             throw RuntimeException(e)
         }
