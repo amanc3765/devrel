@@ -15,19 +15,21 @@
  */
 package com.example.exoplayer
 
-import android.annotation.SuppressLint
+
+import androidx.appcompat.app.AppCompatActivity
+import com.example.exoplayer.databinding.ActivityPlayerBinding
+
+import android.util.Log
 import android.os.Build
 import android.os.Bundle
-import androidx.appcompat.app.AppCompatActivity
+import android.annotation.SuppressLint
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MimeTypes
+import androidx.media3.common.Player
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MimeTypes
-import androidx.media3.exoplayer.ExoPlayer
-import com.example.exoplayer.databinding.ActivityPlayerBinding
-import android.util.Log
-import androidx.media3.common.Player
 
 /**
  * A fullscreen activity to play audio or video streams.
